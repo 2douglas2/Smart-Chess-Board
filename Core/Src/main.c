@@ -27,6 +27,10 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+typedef struct posicoes{
+	int linha;
+	int coluna;
+}posicoes;
 
 /* USER CODE END PTD */
 
@@ -42,19 +46,6 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
-/* USER CODE END PV */
-
-/* Private function prototypes -----------------------------------------------*/
-void SystemClock_Config(void);
-static void MX_GPIO_Init(void);
-/* USER CODE BEGIN PFP */
-
-/* USER CODE END PFP */
-
-/* Private user code ---------------------------------------------------------*/
-/* USER CODE BEGIN 0 */
-
 char Tab [8][8] = {
 	{'T','C', 'B', 'Q', 'K', 'B', 'C', 'T'},
 	{'P','P', 'P', 'P', 'P', 'P', 'P', 'P'},
@@ -65,25 +56,32 @@ char Tab [8][8] = {
 	{'p','p', 'p', 'p', 'p', 'p', 'p', 'p'},
 	{'t','c', 'b', 'q', 'k', 'b', 'c', 't'}
 };
-typedef struct posicoes{
-		int linha;
-		int coluna;
-	}posicoes;
 
 uint16_t Led [8][8] = {
-			{0, 0, 0, 0, 0, 0, 0, 0},
-			{0, 0, 0, 0, 0, 0, 0, 0},
-			{0, 0, 0, 0, 0, 0, 0, 0},
-			{0, 0, 0, 0, 0, 0, 0, 0},
-			{0, 0, 0, 0, 0, 0, 0, 0},
-			{0, 0, 0, 0, 0, 0, 0, 0},
-			{0, 0, 0, 0, 0, 0, 0, 0},
-			{0, 0, 0, 0, 0, 0, 0, 0},
-		};
+	{0, 0, 0, 0, 0, 0, 0, 0},
+	{0, 0, 0, 0, 0, 0, 0, 0},
+	{0, 0, 0, 0, 0, 0, 0, 0},
+	{0, 0, 0, 0, 0, 0, 0, 0},
+	{0, 0, 0, 0, 0, 0, 0, 0},
+	{0, 0, 0, 0, 0, 0, 0, 0},
+	{0, 0, 0, 0, 0, 0, 0, 0},
+	{0, 0, 0, 0, 0, 0, 0, 0},
+};
+/* USER CODE END PV */
+
+/* Private function prototypes -----------------------------------------------*/
+void SystemClock_Config(void);
+static void MX_GPIO_Init(void);
+/* USER CODE BEGIN PFP */
 posicoes VerifyTab();
 void AtualizaLed(posicoes posicao);
 void LigaLed();
 void SetTable();
+/* USER CODE END PFP */
+
+/* Private user code ---------------------------------------------------------*/
+/* USER CODE BEGIN 0 */
+
 /* USER CODE END 0 */
 
 /**
@@ -125,12 +123,12 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  posicoes posicao1;
-	        posicao1 = VerifyTab() ;
-	        if ( posicao1.linha!=8 && posicao1.coluna !=8 ){
-	         AtualizaLed(posicao1);
-	        }
-	        LigaLed();
+	posicoes posicao1;
+	posicao1 = VerifyTab() ;
+	if ( posicao1.linha!=8 && posicao1.coluna !=8 ){
+		AtualizaLed(posicao1);
+	}
+	LigaLed();
   }
   /* USER CODE END 3 */
 }
@@ -212,11 +210,10 @@ void LigaLed(){
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, 1);
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, 1);
 	for(int i=0;i<8;i++){
-			for (int j=0;j<8;j++){
-
-					HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, Led[j][i]);
-				SetTable();
-			}
+		for (int j=0;j<8;j++){
+			HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, Led[j][i]);
+			SetTable();
+		}
 	}
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, 0);
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, 0);
