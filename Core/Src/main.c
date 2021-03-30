@@ -27,15 +27,30 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-typedef struct posicoes{
+typedef struct Posicao{
 	int linha;
 	int coluna;
-}posicoes;
+	char peca;
+}Posicao;
 
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define OFF_LED 0x38 << 16u
+#define RED_LED 0x08
+#define GREEN_LED 0x10
+#define BLUE_LED 0x20
+#define WHITE_LED 0x38
+
+#define TabStatus (GPIOB->IDR & GPIO_PIN_0)
+
+#define LedON GPIOB->BSRR = GPIO_PIN_2
+#define LedOFF GPIOB->BSRR = GPIO_PIN_2 << 16u
+
+#define CounterON GPIOB->BSRR = GPIO_PIN_6
+#define CounterOFF GPIOB->BSRR = GPIO_PIN_6 << 16u
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -57,15 +72,15 @@ char Tab [8][8] = {
 	{'t','c', 'b', 'q', 'k', 'b', 'c', 't'}
 };
 
-uint16_t Led [8][8] = {
-	{0, 0, 0, 0, 0, 0, 0, 0},
-	{0, 0, 0, 0, 0, 0, 0, 0},
-	{0, 0, 0, 0, 0, 0, 0, 0},
-	{0, 0, 0, 0, 0, 0, 0, 0},
-	{0, 0, 0, 0, 0, 0, 0, 0},
-	{0, 0, 0, 0, 0, 0, 0, 0},
-	{0, 0, 0, 0, 0, 0, 0, 0},
-	{0, 0, 0, 0, 0, 0, 0, 0},
+uint32_t Led [8][8] = {
+	{OFF_LED, OFF_LED, OFF_LED, OFF_LED, OFF_LED, OFF_LED, OFF_LED, OFF_LED},
+	{OFF_LED, OFF_LED, OFF_LED, OFF_LED, OFF_LED, OFF_LED, OFF_LED, OFF_LED},
+	{OFF_LED, OFF_LED, OFF_LED, OFF_LED, OFF_LED, OFF_LED, OFF_LED, OFF_LED},
+	{OFF_LED, OFF_LED, OFF_LED, OFF_LED, OFF_LED, OFF_LED, OFF_LED, OFF_LED},
+	{OFF_LED, OFF_LED, OFF_LED, OFF_LED, OFF_LED, OFF_LED, OFF_LED, OFF_LED},
+	{OFF_LED, OFF_LED, OFF_LED, OFF_LED, OFF_LED, OFF_LED, OFF_LED, OFF_LED},
+	{OFF_LED, OFF_LED, OFF_LED, OFF_LED, OFF_LED, OFF_LED, OFF_LED, OFF_LED},
+	{OFF_LED, OFF_LED, OFF_LED, OFF_LED, OFF_LED, OFF_LED, OFF_LED, OFF_LED}
 };
 /* USER CODE END PV */
 
@@ -73,8 +88,8 @@ uint16_t Led [8][8] = {
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 /* USER CODE BEGIN PFP */
-posicoes VerifyTab();
-void AtualizaLed(posicoes posicao);
+Posicao VerifyTab();
+void AtualizaLed(Posicao p);
 void LigaLed();
 void SetTable();
 /* USER CODE END PFP */
@@ -123,9 +138,9 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	posicoes posicao1;
+	Posicao posicao1;
 	posicao1 = VerifyTab() ;
-	if ( posicao1.linha!=8 && posicao1.coluna !=8 ){
+	if ( posicao1.peca != '-' ){
 		AtualizaLed(posicao1);
 	}
 	LigaLed();
@@ -181,8 +196,8 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_10|GPIO_PIN_3
-                          |GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3|GPIO_PIN_4
+                          |GPIO_PIN_5|GPIO_PIN_6, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : PB0 */
   GPIO_InitStruct.Pin = GPIO_PIN_0;
@@ -190,10 +205,10 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PB1 PB2 PB10 PB3
-                           PB4 PB5 PB6 */
-  GPIO_InitStruct.Pin = GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_10|GPIO_PIN_3
-                          |GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6;
+  /*Configure GPIO pins : PB1 PB2 PB3 PB4
+                           PB5 PB6 */
+  GPIO_InitStruct.Pin = GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3|GPIO_PIN_4
+                          |GPIO_PIN_5|GPIO_PIN_6;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -202,47 +217,55 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-void AtualizaLed(posicoes posicao){
-	Led[ posicao.linha ][ posicao.coluna ] = 1;
+void AtualizaLed(Posicao p){
+	Led[ p.linha ][ p.coluna ] = WHITE_LED;
 }
 
 void LigaLed(){
-	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, 1);
-	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, 1);
+	CounterON;
+	LedON;
 	for(int i=0;i<8;i++){
 		for (int j=0;j<8;j++){
-			HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, Led[j][i]);
+			GPIOB->BSRR = Led[j][i];
 			SetTable();
 		}
 	}
-	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, 0);
-	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, 0);
+	CounterOFF;
+	LedOFF;
 }
 
-posicoes VerifyTab(){
-	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, 1);
-	posicoes posicao;
+/*
+ * Virifica se uma casa teve uma peça removida do tabuleiro
+ */
+Posicao VerifyTab(){
+	CounterON;
+	Posicao posicao;
 	for(int i=0;i<8;i++){
 		for (int j=0;j<8;j++){
-			if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0) == 0 && Tab[j][i] != '-' ){
+			if (!TabStatus && Tab[j][i] != '-' ){
 				posicao.linha = j;
 				posicao.coluna = i;
+				posicao.peca = Tab[j][i];
+				CounterOFF;
 				return posicao;
 			}
 			SetTable();
 		}
 	}
-	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, 0);
+	CounterOFF;
 	posicao.linha=8;
 	posicao.coluna=8;
+	posicao.peca = '-';
 	return posicao;
 }
 
+/*
+ * Altera a casa do tabuleiro apontada pelo contador
+ */
 void SetTable(){
-	//Clock
-	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, 1);
-	HAL_Delay(5);
-	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, 0);
+	GPIOB->BSRR = GPIO_PIN_1;
+	HAL_Delay(1);
+	GPIOB->BSRR = GPIO_PIN_1 << 16u;
 }
 
 /* USER CODE END 4 */
