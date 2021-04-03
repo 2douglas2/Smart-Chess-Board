@@ -72,6 +72,17 @@ char Tab [8][8] = {
 	{'t','c', 'b', 'q', 'k', 'b', 'c', 't'}
 };
 
+char TabAtual [8][8] = {
+	{'T','C', 'B', 'Q', 'K', 'B', 'C', 'T'},
+	{'P','P', 'P', 'P', 'P', 'P', 'P', 'P'},
+	{'-','-', '-', '-', '-', '-', '-', '-'},
+	{'-','-', '-', '-', '-', '-', '-', '-'},
+	{'-','-', '-', '-', '-', '-', '-', '-'},
+	{'-','-', '-', '-', '-', '-', '-', '-'},
+	{'p','p', 'p', 'p', 'p', 'p', 'p', 'p'},
+	{'t','c', 'b', 'q', 'k', 'b', 'c', 't'}
+};
+
 uint32_t Led [8][8] = {
 	{OFF_LED, OFF_LED, OFF_LED, OFF_LED, OFF_LED, OFF_LED, OFF_LED, OFF_LED},
 	{OFF_LED, OFF_LED, OFF_LED, OFF_LED, OFF_LED, OFF_LED, OFF_LED, OFF_LED},
@@ -92,6 +103,7 @@ Posicao VerifyTab();
 void AtualizaLed(Posicao p);
 void LigaLed();
 void SetTable();
+void ClearLed();
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -140,9 +152,12 @@ int main(void)
     /* USER CODE BEGIN 3 */
 	Posicao posicao1;
 	posicao1 = VerifyTab() ;
-	if ( posicao1.peca != '-' ){
+	if ( posicao1.peca != '@' ){
 		AtualizaLed(posicao1);
+		TabAtual[posicao1.linha][posicao1.coluna] = '-';
 	}
+	posicao1 = VerifyMov();
+
 	LigaLed();
   }
   /* USER CODE END 3 */
@@ -217,6 +232,14 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void ClearLed() {
+	for(int i=0;i<8;i++){
+		for (int j=0;j<8;j++){
+			Led[j][i]= OFF_LED;
+		}
+	}
+}
+
 void AtualizaLed(Posicao p){
 	Led[ p.linha ][ p.coluna ] = WHITE_LED;
 }
@@ -255,7 +278,29 @@ Posicao VerifyTab(){
 	CounterOFF;
 	posicao.linha=8;
 	posicao.coluna=8;
-	posicao.peca = '-';
+	posicao.peca = '@';
+	return posicao;
+}
+
+Posicao VerifyMov(){
+	CounterON;
+	Posicao posicao;
+	for(int i=0;i<8;i++){
+		for (int j=0;j<8;j++){
+			if ((!TabStatus && TabAtual[j][i] != '-')||(TabStatus && TabAtual[j][i] == '-') ){
+				posicao.linha = j;
+				posicao.coluna = i;
+				posicao.peca = Tab[j][i];
+				CounterOFF;
+				return posicao;
+			}
+			SetTable();
+		}
+	}
+	CounterOFF;
+	posicao.linha=8;
+	posicao.coluna=8;
+	posicao.peca = '@';
 	return posicao;
 }
 
