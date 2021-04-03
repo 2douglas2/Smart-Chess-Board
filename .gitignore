@@ -1,3 +1,12 @@
+
+.settings/
+Release/
+.cproject
+.mxproject
+.project
+STM32F103C6TX_FLASH.ld
+
+
 # Compiled source #
 ###################
 *.com
@@ -6,6 +15,7 @@
 *.exe
 *.o
 *.so
+
 
 # Packages #
 ############
