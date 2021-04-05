@@ -19,6 +19,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include <ctype.h>
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -77,6 +78,17 @@ char Tab [8][8] = {
 	{'-','-', '-', '-', '-', '-', '-', '-'},
 	{'p','p', 'p', 'p', 'p', 'p', 'p', 'p'},
 	{'t','c', 'b', 'q', 'k', 'b', 'c', 't'}
+};
+
+uint16_t MovPos [8][8] = {
+	{0,0, 0, 0, 0,0, 0, 0},
+	{0,0, 0, 0, 0,0, 0, 0},
+	{0,0, 0, 0, 0,0, 0, 0},
+	{0,0, 0, 0, 0,0, 0, 0},
+	{0,0, 0, 0, 0,0, 0, 0},
+	{0,0, 0, 0, 0,0, 0, 0},
+	{0,0, 0, 0, 0,0, 0, 0},
+	{0,0, 0, 0, 0,0, 0, 0}
 };
 
 
@@ -234,7 +246,7 @@ static void MX_TIM1_Init(void)
 
   /* USER CODE END TIM1_Init 1 */
   htim1.Instance = TIM1;
-  htim1.Init.Prescaler = 15;
+  htim1.Init.Prescaler = 24;
   htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim1.Init.Period = 65535;
   htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -314,6 +326,41 @@ void ClearLed() {
 /* Define a iluminação do tabuleiro */
 void AtualizaLed(Peca p){
 	Led[ p.posicao.linha ][ p.posicao.coluna ] = WHITE_LED;
+	int i=0;
+	Posicao posicao_aux = p.posicao;
+	switch ( p.nome ){
+
+	case 'T':
+	case 't':
+        while ( (TabAtual[posicao_aux.linha+i][posicao_aux.coluna]=='-' || islower(p.nome)!=islower(TabAtual[posicao_aux.linha+i][posicao_aux.coluna]) ) && posicao_aux.linha>-1  ){
+			Led[posicao_aux.linha+i][posicao_aux.coluna] = WHITE_LED;
+		    MovPos[posicao_aux.linha+i][posicao_aux.coluna] = 1;
+			i = i-1;
+		}
+		i=0;
+		while ( (TabAtual[posicao_aux.linha+i][posicao_aux.coluna]=='-' || islower(p.nome)!=islower(TabAtual[posicao_aux.linha+i][posicao_aux.coluna]) ) && posicao_aux.linha<8  ){
+			Led[posicao_aux.linha+i][posicao_aux.coluna] = WHITE_LED;
+			MovPos[posicao_aux.linha+i][posicao_aux.coluna] = 1;
+			i = i+1;
+		}
+		i=0;
+		while ( (TabAtual[posicao_aux.linha][posicao_aux.coluna+i]=='-' || islower(p.nome)!=islower(TabAtual[posicao_aux.linha][posicao_aux.coluna+i]) ) && posicao_aux.coluna>-1  ){
+			Led[posicao_aux.linha][posicao_aux.coluna+i]=WHITE_LED;
+			MovPos[posicao_aux.linha][posicao_aux.coluna+i] = 1;
+			i = i-1;
+		}
+		i=0;
+		while ( (TabAtual[posicao_aux.linha][posicao_aux.coluna+i]=='-' || islower(p.nome)!=islower(TabAtual[posicao_aux.linha][posicao_aux.coluna+i]) ) && posicao_aux.linha<8  ){
+			Led[posicao_aux.linha][posicao_aux.coluna+i]=WHITE_LED;
+			MovPos[posicao_aux.linha][posicao_aux.coluna+i] = 1;
+			i = i+1;
+		}
+		break;
+
+	default:
+		break;
+
+	}
 }
 
 
@@ -363,7 +410,7 @@ Peca VerifyMov(){
 	Peca p;
 	for(int i=0;i<8;i++){
 		for (int j=0;j<8;j++){
-			if ((!TabStatus && TabAtual[j][i] != '-')||(TabStatus && TabAtual[j][i] == '-') ){
+			if ( ( (!TabStatus && TabAtual[j][i] != '-') || (TabStatus && TabAtual[j][i] == '-') ) && MovPos[j][i] ){
 				p.posicao.linha = j;
 				p.posicao.coluna = i;
 				p.nome = Tab[j][i];
