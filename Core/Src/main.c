@@ -30,8 +30,14 @@
 typedef struct Posicao{
 	int linha;
 	int coluna;
-	char peca;
 }Posicao;
+
+typedef struct Peca{
+	Posicao posicao;
+	char nome;
+}Peca;
+
+
 
 /* USER CODE END PTD */
 
@@ -59,6 +65,7 @@ typedef struct Posicao{
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+TIM_HandleTypeDef htim1;
 
 /* USER CODE BEGIN PV */
 char Tab [8][8] = {
@@ -71,6 +78,8 @@ char Tab [8][8] = {
 	{'p','p', 'p', 'p', 'p', 'p', 'p', 'p'},
 	{'t','c', 'b', 'q', 'k', 'b', 'c', 't'}
 };
+
+
 
 char TabAtual [8][8] = {
 	{'T','C', 'B', 'Q', 'K', 'B', 'C', 'T'},
@@ -98,9 +107,12 @@ uint32_t Led [8][8] = {
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_TIM1_Init(void);
 /* USER CODE BEGIN PFP */
-Posicao VerifyTab();
-void AtualizaLed(Posicao p);
+Peca VerifyTab();
+Peca VerifyMov();
+void setError();
+void AtualizaLed(Peca p);
 void LigaLed();
 void SetTable();
 void ClearLed();
@@ -139,8 +151,9 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
-
+  HAL_TIM_Base_Start_IT(&htim1);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -150,15 +163,18 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	Posicao posicao1;
-	posicao1 = VerifyTab() ;
-	if ( posicao1.peca != '@' ){
-		AtualizaLed(posicao1);
-		TabAtual[posicao1.linha][posicao1.coluna] = '-';
+	Peca p;
+	p = VerifyTab() ;
+	if ( p.nome != '@' ){
+		AtualizaLed(p);
+		TabAtual[p.posicao.coluna][p.posicao.coluna ] = '-';
 	}
-	posicao1 = VerifyMov();
 
-	LigaLed();
+	Peca p2 = VerifyMov();
+	while(p2.nome != '@'){
+		p2 = VerifyMov();
+	}
+
   }
   /* USER CODE END 3 */
 }
@@ -199,6 +215,59 @@ void SystemClock_Config(void)
 }
 
 /**
+  * @brief TIM1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM1_Init(void)
+{
+
+  /* USER CODE BEGIN TIM1_Init 0 */
+
+  /* USER CODE END TIM1_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_SlaveConfigTypeDef sSlaveConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM1_Init 1 */
+
+  /* USER CODE END TIM1_Init 1 */
+  htim1.Instance = TIM1;
+  htim1.Init.Prescaler = 15;
+  htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim1.Init.Period = 65535;
+  htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim1.Init.RepetitionCounter = 0;
+  htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim1, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sSlaveConfig.SlaveMode = TIM_SLAVEMODE_RESET;
+  sSlaveConfig.InputTrigger = TIM_TS_ITR0;
+  if (HAL_TIM_SlaveConfigSynchro(&htim1, &sSlaveConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM1_Init 2 */
+
+  /* USER CODE END TIM1_Init 2 */
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -232,6 +301,8 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+/* Desliga todos os leds do tabuleiro */
 void ClearLed() {
 	for(int i=0;i<8;i++){
 		for (int j=0;j<8;j++){
@@ -240,16 +311,21 @@ void ClearLed() {
 	}
 }
 
-void AtualizaLed(Posicao p){
-	Led[ p.linha ][ p.coluna ] = WHITE_LED;
+/* Define a iluminação do tabuleiro */
+void AtualizaLed(Peca p){
+	Led[ p.posicao.linha ][ p.posicao.coluna ] = WHITE_LED;
 }
 
+
+/* Acende os leds do tabuleiro */
 void LigaLed(){
 	CounterON;
 	LedON;
 	for(int i=0;i<8;i++){
 		for (int j=0;j<8;j++){
 			GPIOB->BSRR = Led[j][i];
+			HAL_Delay(1);
+			GPIOB->BSRR = OFF_LED;
 			SetTable();
 		}
 	}
@@ -257,60 +333,63 @@ void LigaLed(){
 	LedOFF;
 }
 
-/*
- * Virifica se uma casa teve uma peça removida do tabuleiro
- */
-Posicao VerifyTab(){
+/* Virifica se uma casa teve uma peça removida do tabuleiro */
+Peca VerifyTab(){
 	CounterON;
-	Posicao posicao;
+	Peca p;
 	for(int i=0;i<8;i++){
 		for (int j=0;j<8;j++){
 			if (!TabStatus && Tab[j][i] != '-' ){
-				posicao.linha = j;
-				posicao.coluna = i;
-				posicao.peca = Tab[j][i];
+				p.posicao.linha = j;
+				p.posicao.coluna = i;
+				p.nome = Tab[j][i];
 				CounterOFF;
-				return posicao;
+				return p;
 			}
 			SetTable();
 		}
 	}
 	CounterOFF;
-	posicao.linha=8;
-	posicao.coluna=8;
-	posicao.peca = '@';
-	return posicao;
+	p.posicao.linha=8;
+	p.posicao.coluna=8;
+	p.nome='@';
+	return p;
 }
 
-Posicao VerifyMov(){
+
+/* Verifica os movimentos realizados no tabuleiro */
+Peca VerifyMov(){
 	CounterON;
-	Posicao posicao;
+	Peca p;
 	for(int i=0;i<8;i++){
 		for (int j=0;j<8;j++){
 			if ((!TabStatus && TabAtual[j][i] != '-')||(TabStatus && TabAtual[j][i] == '-') ){
-				posicao.linha = j;
-				posicao.coluna = i;
-				posicao.peca = Tab[j][i];
+				p.posicao.linha = j;
+				p.posicao.coluna = i;
+				p.nome = Tab[j][i];
 				CounterOFF;
-				return posicao;
+				return p;
 			}
 			SetTable();
 		}
 	}
 	CounterOFF;
-	posicao.linha=8;
-	posicao.coluna=8;
-	posicao.peca = '@';
-	return posicao;
+	p.posicao.linha=8;
+	p.posicao.coluna=8;
+	p.nome = '@';
+	return p;
 }
 
-/*
- * Altera a casa do tabuleiro apontada pelo contador
- */
+/* Altera a casa do tabuleiro apontada pelo contador */
 void SetTable(){
 	GPIOB->BSRR = GPIO_PIN_1;
 	HAL_Delay(1);
 	GPIOB->BSRR = GPIO_PIN_1 << 16u;
+}
+
+/* Função de interrupção para os leds e display */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
+	LigaLed();
 }
 
 /* USER CODE END 4 */
