@@ -44,20 +44,59 @@ typedef struct Peca{
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define OFF_LED 0x38 << 16u
-#define RED_LED 0x08
-#define GREEN_LED 0x10
-#define BLUE_LED 0x20
-#define WHITE_LED 0x38
+#define OFF_LED                 0x38 << 16u
+#define RED_LED                 0x08
+#define GREEN_LED               0x10
+#define BLUE_LED                0x20
+#define WHITE_LED               0x38
 
-#define TabStatus (GPIOB->IDR & GPIO_PIN_0)
+#define TabStatus               (GPIOB->IDR & GPIO_PIN_0)
 
-#define LedON GPIOB->BSRR = GPIO_PIN_2
-#define LedOFF GPIOB->BSRR = GPIO_PIN_2 << 16u
+#define LedON                   GPIOB->BSRR = GPIO_PIN_2
+#define LedOFF                  GPIOB->BSRR = GPIO_PIN_2 << 16u
 
-#define CounterON GPIOB->BSRR = GPIO_PIN_6
-#define CounterOFF GPIOB->BSRR = GPIO_PIN_6 << 16u
+#define CounterON               GPIOB->BSRR = GPIO_PIN_6
+#define CounterOFF              GPIOB->BSRR = GPIO_PIN_6 << 16u
 
+/*Trabalhando com display*/
+#define LCD_E                   GPIO_PIN_8
+#define LCD_RW                  GPIO_PIN_9
+#define LCD_RS                  GPIO_PIN_10
+#define LCD_RS_LOW              GPIOA->BSRR = LCD_RS << 16u
+#define LCD_RS_HIGH             GPIOA->BSRR = LCD_RS
+#define LCD_E_LOW               GPIOA->BSRR = LCD_E << 16u
+#define LCD_E_HIGH              GPIOA->BSRR = LCD_E
+#define LCD_E_BLINK             LCD_E_HIGH; LCD_Delay_us(50); LCD_E_LOW; LCD_Delay_us(50)
+/* Commands*/
+#define LCD_CLEARDISPLAY        0x01
+#define LCD_RETURNHOME          0x02
+#define LCD_ENTRYMODESET        0x04
+#define LCD_DISPLAYCONTROL      0x08
+#define LCD_CURSORSHIFT         0x10
+#define LCD_FUNCTIONSET         0x20
+#define LCD_SETCGRAMADDR        0x40
+#define LCD_SETDDRAMADDR        0x80
+/* Flags for display entry mode */
+#define LCD_ENTRYRIGHT          0x00
+#define LCD_ENTRYLEFT           0x02
+#define LCD_ENTRYSHIFTINCREMENT 0x01
+#define LCD_ENTRYSHIFTDECREMENT 0x00
+/* Flags for display on/off control */
+#define LCD_DISPLAYON           0x04
+#define LCD_CURSORON            0x02
+#define LCD_BLINKON             0x01
+/* Flags for display/cursor shift */
+#define LCD_DISPLAYMOVE         0x08
+#define LCD_CURSORMOVE          0x00
+#define LCD_MOVERIGHT           0x04
+#define LCD_MOVELEFT            0x00
+/* Flags for function set */
+#define LCD_8BITMODE            0x10
+#define LCD_4BITMODE            0x00
+#define LCD_2LINE               0x08
+#define LCD_1LINE               0x00
+#define LCD_5x10DOTS            0x04
+#define LCD_5x8DOTS             0x00
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -185,6 +224,10 @@ uint32_t Led [8][8] = {
 	{OFF_LED, OFF_LED, OFF_LED, OFF_LED, OFF_LED, OFF_LED, OFF_LED, OFF_LED},
 	{OFF_LED, OFF_LED, OFF_LED, OFF_LED, OFF_LED, OFF_LED, OFF_LED, OFF_LED}
 };
+
+
+char* LCD_Texto= "  Smart Chaess  \n      Board     ";
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -199,6 +242,12 @@ void AtualizaLed(Peca* p);
 void LigaLed();
 void SetTable();
 void ClearLed();
+void  LCD_Delay_us(uint16_t  us);
+static void LCD_Cmd(uint8_t cmd);
+static void LCD_Data(uint8_t data);
+void LCD_Init();
+void LCD_Clear();
+void LCD_Write(char* str);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -222,7 +271,7 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-
+  //LCD_Init();
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -252,7 +301,7 @@ int main(void)
 		AtualizaLed(p);
 		TabAtual[p->posicao.coluna][p->posicao.coluna ] = '-';
 		Peca* p2 = VerifyMov();
-		while(p2 != NULL){
+		while(p2 == NULL){
 			p2 = VerifyMov();
 		}
 	}
@@ -509,9 +558,62 @@ void SetTable(){
 	GPIOB->BSRR = GPIO_PIN_1 << 16u;
 }
 
+
+
+
+/* Funções do LCD
+ * Adaptado de https://github.com/nimaltd/LCD-Character
+ * */
+
+
+
+void  LCD_Delay_us(uint16_t  us)
+{
+  uint32_t  Div = (SysTick->LOAD+1)/1000;
+  uint32_t  StartMicros = HAL_GetTick()*1000 + (1000- SysTick->VAL/Div);
+  while((HAL_GetTick()*1000 + (1000-SysTick->VAL/Div)-StartMicros < us));
+}
+static void LCD_Cmd(uint8_t cmd)
+{
+	GPIOA->ODR = cmd;
+	LCD_RS_LOW;
+	LCD_E_BLINK;
+}
+static void LCD_Data(uint8_t data)
+{
+	GPIOA->ODR = data;
+	LCD_RS_HIGH;
+	LCD_E_BLINK;
+}
+void LCD_Init()
+{
+	LCD_Cmd(LCD_FUNCTIONSET | LCD_8BITMODE | LCD_5x8DOTS | LCD_2LINE);
+	HAL_Delay(5);
+	LCD_Cmd(LCD_DISPLAYCONTROL | LCD_DISPLAYON  |LCD_BLINKON);
+	HAL_Delay(5);
+}
+void LCD_Clear()
+{
+	LCD_Cmd(LCD_CLEARDISPLAY);
+	HAL_Delay(5);
+}
+void LCD_Write(char* str)
+{
+	LCD_Cmd(LCD_CLEARDISPLAY);
+	while (*str)
+	{
+		if (*str == '\n')
+		{
+			LCD_Cmd(LCD_SETDDRAMADDR | 0x40);
+		}
+		LCD_Data(*str);
+		str++;
+	}
+}
 /* Função de interrupção para os leds e display */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 	LigaLed();
+	//LCD_Write(LCD_Texto);
 }
 
 /* USER CODE END 4 */
