@@ -22,7 +22,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <ctype.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -35,6 +35,7 @@ typedef struct Posicao{
 typedef struct Peca{
 	Posicao posicao;
 	char nome;
+	uint32_t movimentos;
 }Peca;
 
 
@@ -68,17 +69,88 @@ typedef struct Peca{
 TIM_HandleTypeDef htim1;
 
 /* USER CODE BEGIN PV */
-char Tab [8][8] = {
-	{'T','C', 'B', 'Q', 'K', 'B', 'C', 'T'},
-	{'P','P', 'P', 'P', 'P', 'P', 'P', 'P'},
-	{'-','-', '-', '-', '-', '-', '-', '-'},
-	{'-','-', '-', '-', '-', '-', '-', '-'},
-	{'-','-', '-', '-', '-', '-', '-', '-'},
-	{'-','-', '-', '-', '-', '-', '-', '-'},
-	{'p','p', 'p', 'p', 'p', 'p', 'p', 'p'},
-	{'t','c', 'b', 'q', 'k', 'b', 'c', 't'}
+Peca Tabuleiro[8][8]= {
+	{
+		{.posicao.linha = 0, .posicao.coluna = 0, .nome = 'T', .movimentos = 0},
+		{.posicao.linha = 0, .posicao.coluna = 1, .nome = 'C', .movimentos = 0},
+		{.posicao.linha = 0, .posicao.coluna = 2, .nome = 'B', .movimentos = 0},
+		{.posicao.linha = 0, .posicao.coluna = 3, .nome = 'Q', .movimentos = 0},
+		{.posicao.linha = 0, .posicao.coluna = 4, .nome = 'K', .movimentos = 0},
+		{.posicao.linha = 0, .posicao.coluna = 5, .nome = 'B', .movimentos = 0},
+		{.posicao.linha = 0, .posicao.coluna = 6, .nome = 'C', .movimentos = 0},
+		{.posicao.linha = 0, .posicao.coluna = 7, .nome = 'T', .movimentos = 0}
+	},
+	{
+		{.posicao.linha = 1, .posicao.coluna = 0, .nome = 'P', .movimentos = 0},
+		{.posicao.linha = 1, .posicao.coluna = 1, .nome = 'P', .movimentos = 0},
+		{.posicao.linha = 1, .posicao.coluna = 2, .nome = 'P', .movimentos = 0},
+		{.posicao.linha = 1, .posicao.coluna = 3, .nome = 'P', .movimentos = 0},
+		{.posicao.linha = 1, .posicao.coluna = 4, .nome = 'P', .movimentos = 0},
+		{.posicao.linha = 1, .posicao.coluna = 5, .nome = 'P', .movimentos = 0},
+		{.posicao.linha = 1, .posicao.coluna = 6, .nome = 'P', .movimentos = 0},
+		{.posicao.linha = 1, .posicao.coluna = 7, .nome = 'P', .movimentos = 0}
+	},
+	{
+		{.posicao.linha = 2, .posicao.coluna = 0, .nome = '-', .movimentos = 0},
+		{.posicao.linha = 2, .posicao.coluna = 1, .nome = '-', .movimentos = 0},
+		{.posicao.linha = 2, .posicao.coluna = 2, .nome = '-', .movimentos = 0},
+		{.posicao.linha = 2, .posicao.coluna = 3, .nome = '-', .movimentos = 0},
+		{.posicao.linha = 2, .posicao.coluna = 4, .nome = '-', .movimentos = 0},
+		{.posicao.linha = 2, .posicao.coluna = 5, .nome = '-', .movimentos = 0},
+		{.posicao.linha = 2, .posicao.coluna = 6, .nome = '-', .movimentos = 0},
+		{.posicao.linha = 2, .posicao.coluna = 7, .nome = '-', .movimentos = 0}
+	},
+	{
+		{.posicao.linha = 3, .posicao.coluna = 0, .nome = '-', .movimentos = 0},
+		{.posicao.linha = 3, .posicao.coluna = 1, .nome = '-', .movimentos = 0},
+		{.posicao.linha = 3, .posicao.coluna = 2, .nome = '-', .movimentos = 0},
+		{.posicao.linha = 3, .posicao.coluna = 3, .nome = '-', .movimentos = 0},
+		{.posicao.linha = 3, .posicao.coluna = 4, .nome = '-', .movimentos = 0},
+		{.posicao.linha = 3, .posicao.coluna = 5, .nome = '-', .movimentos = 0},
+		{.posicao.linha = 3, .posicao.coluna = 6, .nome = '-', .movimentos = 0},
+		{.posicao.linha = 3, .posicao.coluna = 7, .nome = '-', .movimentos = 0}
+	},
+	{
+		{.posicao.linha = 4, .posicao.coluna = 0, .nome = '-', .movimentos = 0},
+		{.posicao.linha = 4, .posicao.coluna = 1, .nome = '-', .movimentos = 0},
+		{.posicao.linha = 4, .posicao.coluna = 2, .nome = '-', .movimentos = 0},
+		{.posicao.linha = 4, .posicao.coluna = 3, .nome = '-', .movimentos = 0},
+		{.posicao.linha = 4, .posicao.coluna = 4, .nome = '-', .movimentos = 0},
+		{.posicao.linha = 4, .posicao.coluna = 5, .nome = '-', .movimentos = 0},
+		{.posicao.linha = 4, .posicao.coluna = 6, .nome = '-', .movimentos = 0},
+		{.posicao.linha = 4, .posicao.coluna = 7, .nome = '-', .movimentos = 0}
+	},
+	{
+		{.posicao.linha = 5, .posicao.coluna = 0, .nome = '-', .movimentos = 0},
+		{.posicao.linha = 5, .posicao.coluna = 1, .nome = '-', .movimentos = 0},
+		{.posicao.linha = 5, .posicao.coluna = 2, .nome = '-', .movimentos = 0},
+		{.posicao.linha = 5, .posicao.coluna = 3, .nome = '-', .movimentos = 0},
+		{.posicao.linha = 5, .posicao.coluna = 4, .nome = '-', .movimentos = 0},
+		{.posicao.linha = 5, .posicao.coluna = 5, .nome = '-', .movimentos = 0},
+		{.posicao.linha = 5, .posicao.coluna = 6, .nome = '-', .movimentos = 0},
+		{.posicao.linha = 5, .posicao.coluna = 7, .nome = '-', .movimentos = 0}
+	},
+	{
+		{.posicao.linha = 6, .posicao.coluna = 0, .nome = 'p', .movimentos = 0},
+		{.posicao.linha = 6, .posicao.coluna = 1, .nome = 'p', .movimentos = 0},
+		{.posicao.linha = 6, .posicao.coluna = 2, .nome = 'p', .movimentos = 0},
+		{.posicao.linha = 6, .posicao.coluna = 3, .nome = 'p', .movimentos = 0},
+		{.posicao.linha = 6, .posicao.coluna = 4, .nome = 'p', .movimentos = 0},
+		{.posicao.linha = 6, .posicao.coluna = 5, .nome = 'p', .movimentos = 0},
+		{.posicao.linha = 6, .posicao.coluna = 6, .nome = 'p', .movimentos = 0},
+		{.posicao.linha = 6, .posicao.coluna = 7, .nome = 'p', .movimentos = 0}
+	},
+	{
+		{.posicao.linha = 7, .posicao.coluna = 0, .nome = 't', .movimentos = 0},
+		{.posicao.linha = 7, .posicao.coluna = 1, .nome = 'c', .movimentos = 0},
+		{.posicao.linha = 7, .posicao.coluna = 2, .nome = 'b', .movimentos = 0},
+		{.posicao.linha = 7, .posicao.coluna = 3, .nome = 'q', .movimentos = 0},
+		{.posicao.linha = 7, .posicao.coluna = 4, .nome = 'k', .movimentos = 0},
+		{.posicao.linha = 7, .posicao.coluna = 5, .nome = 'b', .movimentos = 0},
+		{.posicao.linha = 7, .posicao.coluna = 6, .nome = 'c', .movimentos = 0},
+		{.posicao.linha = 7, .posicao.coluna = 7, .nome = 't', .movimentos = 0}
+	}
 };
-
 uint16_t MovPos [8][8] = {
 	{0,0, 0, 0, 0,0, 0, 0},
 	{0,0, 0, 0, 0,0, 0, 0},
@@ -120,10 +192,10 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_TIM1_Init(void);
 /* USER CODE BEGIN PFP */
-Peca VerifyTab();
-Peca VerifyMov();
+Peca* VerifyTab();
+Peca* VerifyMov();
 void setError();
-void AtualizaLed(Peca p);
+void AtualizaLed(Peca* p);
 void LigaLed();
 void SetTable();
 void ClearLed();
@@ -174,17 +246,18 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	Peca p;
+	Peca* p;
 	p = VerifyTab() ;
-	if ( p.nome != '@' ){
+	if ( p != NULL ){
 		AtualizaLed(p);
-		TabAtual[p.posicao.coluna][p.posicao.coluna ] = '-';
+		TabAtual[p->posicao.coluna][p->posicao.coluna ] = '-';
+		Peca* p2 = VerifyMov();
+		while(p2 != NULL){
+			p2 = VerifyMov();
+		}
 	}
 
-	Peca p2 = VerifyMov();
-	while(p2.nome != '@'){
-		p2 = VerifyMov();
-	}
+
 
   }
   /* USER CODE END 3 */
@@ -340,33 +413,33 @@ void ClearLed() {
 }
 
 /* Define a iluminação do tabuleiro */
-void AtualizaLed(Peca p){
-	Led[ p.posicao.linha ][ p.posicao.coluna ] = WHITE_LED;
+void AtualizaLed(Peca* p){
+	Led[ p->posicao.linha ][ p->posicao.coluna ] = WHITE_LED;
 	int i=0;
-	Posicao posicao_aux = p.posicao;
-	switch ( p.nome ){
+	Posicao posicao_aux = p->posicao;
+	switch ( p->nome ){
 
 	case 'T':
 	case 't':
-        while ( (TabAtual[posicao_aux.linha+i][posicao_aux.coluna]=='-' || islower(p.nome)!=islower(TabAtual[posicao_aux.linha+i][posicao_aux.coluna]) ) && posicao_aux.linha>-1  ){
+        while ( (TabAtual[posicao_aux.linha+i][posicao_aux.coluna]=='-' || islower(p->nome)!=islower(TabAtual[posicao_aux.linha+i][posicao_aux.coluna]) ) && posicao_aux.linha>-1  ){
 			Led[posicao_aux.linha+i][posicao_aux.coluna] = WHITE_LED;
 		    MovPos[posicao_aux.linha+i][posicao_aux.coluna] = 1;
 			i = i-1;
 		}
 		i=0;
-		while ( (TabAtual[posicao_aux.linha+i][posicao_aux.coluna]=='-' || islower(p.nome)!=islower(TabAtual[posicao_aux.linha+i][posicao_aux.coluna]) ) && posicao_aux.linha<8  ){
+		while ( (TabAtual[posicao_aux.linha+i][posicao_aux.coluna]=='-' || islower(p->nome)!=islower(TabAtual[posicao_aux.linha+i][posicao_aux.coluna]) ) && posicao_aux.linha<8  ){
 			Led[posicao_aux.linha+i][posicao_aux.coluna] = WHITE_LED;
 			MovPos[posicao_aux.linha+i][posicao_aux.coluna] = 1;
 			i = i+1;
 		}
 		i=0;
-		while ( (TabAtual[posicao_aux.linha][posicao_aux.coluna+i]=='-' || islower(p.nome)!=islower(TabAtual[posicao_aux.linha][posicao_aux.coluna+i]) ) && posicao_aux.coluna>-1  ){
+		while ( (TabAtual[posicao_aux.linha][posicao_aux.coluna+i]=='-' || islower(p->nome)!=islower(TabAtual[posicao_aux.linha][posicao_aux.coluna+i]) ) && posicao_aux.coluna>-1  ){
 			Led[posicao_aux.linha][posicao_aux.coluna+i]=WHITE_LED;
 			MovPos[posicao_aux.linha][posicao_aux.coluna+i] = 1;
 			i = i-1;
 		}
 		i=0;
-		while ( (TabAtual[posicao_aux.linha][posicao_aux.coluna+i]=='-' || islower(p.nome)!=islower(TabAtual[posicao_aux.linha][posicao_aux.coluna+i]) ) && posicao_aux.linha<8  ){
+		while ( (TabAtual[posicao_aux.linha][posicao_aux.coluna+i]=='-' || islower(p->nome)!=islower(TabAtual[posicao_aux.linha][posicao_aux.coluna+i]) ) && posicao_aux.linha<8  ){
 			Led[posicao_aux.linha][posicao_aux.coluna+i]=WHITE_LED;
 			MovPos[posicao_aux.linha][posicao_aux.coluna+i] = 1;
 			i = i+1;
@@ -397,50 +470,36 @@ void LigaLed(){
 }
 
 /* Virifica se uma casa teve uma peça removida do tabuleiro */
-Peca VerifyTab(){
+Peca* VerifyTab(){
 	CounterON;
-	Peca p;
 	for(int i=0;i<8;i++){
 		for (int j=0;j<8;j++){
-			if (!TabStatus && Tab[j][i] != '-' ){
-				p.posicao.linha = j;
-				p.posicao.coluna = i;
-				p.nome = Tab[j][i];
+			if (!TabStatus && Tabuleiro[j][i].nome != '-' ){
 				CounterOFF;
-				return p;
+				return &Tabuleiro[j][i];
 			}
 			SetTable();
 		}
 	}
 	CounterOFF;
-	p.posicao.linha=8;
-	p.posicao.coluna=8;
-	p.nome='@';
-	return p;
+	return NULL;
 }
 
 
 /* Verifica os movimentos realizados no tabuleiro */
-Peca VerifyMov(){
+Peca* VerifyMov(){
 	CounterON;
-	Peca p;
 	for(int i=0;i<8;i++){
 		for (int j=0;j<8;j++){
 			if ( ( (!TabStatus && TabAtual[j][i] != '-') || (TabStatus && TabAtual[j][i] == '-') ) && MovPos[j][i] ){
-				p.posicao.linha = j;
-				p.posicao.coluna = i;
-				p.nome = Tab[j][i];
 				CounterOFF;
-				return p;
+				return &Tabuleiro[j][i];
 			}
 			SetTable();
 		}
 	}
 	CounterOFF;
-	p.posicao.linha=8;
-	p.posicao.coluna=8;
-	p.nome = '@';
-	return p;
+	return NULL;
 }
 
 /* Altera a casa do tabuleiro apontada pelo contador */
