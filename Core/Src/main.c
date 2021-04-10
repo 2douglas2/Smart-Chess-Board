@@ -108,6 +108,9 @@ typedef struct Peca{
 TIM_HandleTypeDef htim1;
 
 /* USER CODE BEGIN PV */
+
+uint8_t Turno = 0;
+
 Peca Tabuleiro[8][8]= {
 	{
 		{.posicao.linha = 0, .posicao.coluna = 0, .nome = 'T', .movimentos = 0},
@@ -237,8 +240,9 @@ static void MX_TIM1_Init(void);
 /* USER CODE BEGIN PFP */
 Peca* VerifyTab();
 Peca* VerifyMov();
-void setError();
+void Troca(Peca* p,Peca* p2);
 void AtualizaLed(Peca* p);
+void MovPosiveis(Peca* p);
 void LigaLed();
 void SetTable();
 void ClearLed();
@@ -296,16 +300,54 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+
+	if(Turno==0){
+		LCD_Write(" Jogador da vez:\n     Brancas     ");
+	}
+	else{
+		LCD_Write(" Jogador da vez:\n     Pretas     ");
+	}
 	Peca* p;
 	p = VerifyTab() ;
 	if ( p != NULL ){
-		AtualizaLed(p);
-		LigaLed();
-		TabAtual[p->posicao.coluna][p->posicao.coluna ] = '-';
-		Peca* p2 = VerifyMov();
-		while(p2 == NULL){
-			p2 = VerifyMov();
+		if((islower(p->nome)&&Turno==0)||(!islower(p->nome)&&Turno!=0)){
+			AtualizaLed(p);
+			TabAtual[p->posicao.coluna][p->posicao.coluna ] = '-';
+			Peca* p2 = VerifyMov();
+			while(p2 == NULL){
+				p2 = VerifyMov();
+			}
+			ClearLed();
+			if(p2->nome=='-'){
+				Troca(p,p2);
+			}
+			else{
+				Led[p2->posicao.linha][p2->posicao.coluna] = WHITE_LED;
+				LigaLed();
+				TabAtual[p2->posicao.coluna][p2->posicao.coluna ] = '-';
+				p2->nome = '-';
+				for(int i=0;i<8;i++){
+					for(int j=0;j<8;j++){
+						MovPos[i][j]=0;
+					}
+				}
+				MovPos[p2->posicao.linha][p2->posicao.coluna]=1;
+				p2 = VerifyMov();
+				while(p2 == NULL){
+					p2 = VerifyMov();
+				}
+
+				Troca(p,p2);
+			}
+			Turno = (Turno+1)%2;
 		}
+		else{
+			Led[p->posicao.linha][p->posicao.coluna] = RED_LED;
+			LigaLed();
+		}
+
+
+
 	}
 
 
@@ -458,77 +500,90 @@ static void MX_GPIO_Init(void)
 void ClearLed() {
 	for(int i=0;i<8;i++){
 		for (int j=0;j<8;j++){
-			Led[j][i]= OFF_LED;
+			Led[i][j]= OFF_LED;
 		}
 	}
 }
 
 /* Define a iluminação do tabuleiro */
 void AtualizaLed(Peca* p){
-	Led[ p->posicao.linha ][ p->posicao.coluna ] = WHITE_LED;
+	for(int i=0;i<8;i++){
+		for(int j=0;j<8;j++){
+			if(MovPos[i][j]){
+				Led[i][j] = WHITE_LED;
+			}
+			else{
+				Led[j][i]= OFF_LED;
+			}
+		}
+	}
+
+	LigaLed();
+}
+void MovPosiveis(Peca* p){
 	int i=0;
 	Posicao posicao_aux = p->posicao;
 	switch ( p->nome ){
 	case'P':
-	if ( (islower( p->nome ) != islower( TabAtual[posicao_aux.linha+1][posicao_aux.coluna+1])) && (posicao_aux.coluna+1<8) ){
-		Led[posicao_aux.linha+1][posicao_aux.coluna+1]=WHITE_LED;
-		MovPos[posicao_aux.linha+1][posicao_aux.coluna+1] = 1;}
-	if(islower(p->nome) != islower(TabAtual[posicao_aux.linha+1][posicao_aux.coluna-1]) && posicao_aux.coluna-1>-1 ){
-		Led[posicao_aux.linha+1][posicao_aux.coluna-1]=WHITE_LED;
-		MovPos[posicao_aux.linha+1][posicao_aux.coluna-1] = 1;}
-	if ( posicao_aux.linha==1){
+		if ( (islower( p->nome ) != islower( TabAtual[posicao_aux.linha+1][posicao_aux.coluna+1])) && (posicao_aux.coluna+1<8) ){
+
+			MovPos[posicao_aux.linha+1][posicao_aux.coluna+1] = 1;}
+		if(islower(p->nome) != islower(TabAtual[posicao_aux.linha+1][posicao_aux.coluna-1]) && posicao_aux.coluna-1>-1 ){
+
+			MovPos[posicao_aux.linha+1][posicao_aux.coluna-1] = 1;}
+		if ( posicao_aux.linha==1){
 			if( TabAtual[posicao_aux.linha+2][posicao_aux.coluna]=='-' ){
-				Led[posicao_aux.linha+2][posicao_aux.coluna]=WHITE_LED;
+
 				MovPos[posicao_aux.linha+2][posicao_aux.coluna] = 1;
 			}
 		}
-	if( TabAtual[posicao_aux.linha+1][posicao_aux.coluna]=='-' ){
-					Led[posicao_aux.linha+1][posicao_aux.coluna]=WHITE_LED;
-					MovPos[posicao_aux.linha+1][posicao_aux.coluna] = 1;
-				}
+		if( TabAtual[posicao_aux.linha+1][posicao_aux.coluna]=='-' ){
+
+			MovPos[posicao_aux.linha+1][posicao_aux.coluna] = 1;
+		}
 		break;
 	case'p':
 		if ( islower(p->nome) != islower(TabAtual[posicao_aux.linha-1][posicao_aux.coluna-1]) && posicao_aux.coluna+1<8 ){
-			Led[posicao_aux.linha-1][posicao_aux.coluna-1]=WHITE_LED;
+
 			MovPos[posicao_aux.linha-1][posicao_aux.coluna-1] = 1;}
 		if ( islower(p->nome) != islower(TabAtual[posicao_aux.linha-1][posicao_aux.coluna-1]) && posicao_aux.coluna-1>-1 ){
-			Led[posicao_aux.linha-1][posicao_aux.coluna-1]=WHITE_LED;
+
 			MovPos[posicao_aux.linha-1][posicao_aux.coluna-1] = 1;}
 		if ( posicao_aux.linha==6){
 			if( TabAtual[posicao_aux.linha-2][posicao_aux.coluna]=='-' ){
-				Led[posicao_aux.linha-2][posicao_aux.coluna]=WHITE_LED;
+
 				MovPos[posicao_aux.linha-2][posicao_aux.coluna] = 1;
-				}
 			}
+		}
 		if( TabAtual[posicao_aux.linha-1][posicao_aux.coluna]=='-' ){
-			Led[posicao_aux.linha-1][posicao_aux.coluna]=WHITE_LED;
+
 			MovPos[posicao_aux.linha-1][posicao_aux.coluna] = 1;
-			}
+		}
 		break;
 
 	case 'T':
 	case 't':
         while ( (TabAtual[posicao_aux.linha+i][posicao_aux.coluna]=='-' || islower(p->nome)!=islower(TabAtual[posicao_aux.linha+i][posicao_aux.coluna]) ) && posicao_aux.linha>-1){
-			Led[posicao_aux.linha+i][posicao_aux.coluna] = WHITE_LED;
+
 		    MovPos[posicao_aux.linha+i][posicao_aux.coluna] = 1;
 			i = i-1;
 		}
 		i=0;
 		while ( (TabAtual[posicao_aux.linha+i][posicao_aux.coluna]=='-' || islower(p->nome)!=islower(TabAtual[posicao_aux.linha+i][posicao_aux.coluna]) ) && posicao_aux.linha<8){
-			Led[posicao_aux.linha+i][posicao_aux.coluna] = WHITE_LED;
+
 			MovPos[posicao_aux.linha+i][posicao_aux.coluna] = 1;
 			i = i+1;
 
 		}
 		i=0;
 		while ( (TabAtual[posicao_aux.linha][posicao_aux.coluna+i]=='-' || islower(p->nome)!=islower(TabAtual[posicao_aux.linha][posicao_aux.coluna+i]) ) && posicao_aux.coluna>-1){
-			Led[posicao_aux.linha][posicao_aux.coluna+i]=WHITE_LED;
+
 			MovPos[posicao_aux.linha][posicao_aux.coluna+i] = 1;
 			i = i-1;
 		}
 		i=0;
 		while ( (TabAtual[posicao_aux.linha][posicao_aux.coluna+i]=='-' || islower(p->nome)!=islower(TabAtual[posicao_aux.linha][posicao_aux.coluna+i]) ) && posicao_aux.linha<8){
-			Led[posicao_aux.linha][posicao_aux.coluna+i]=WHITE_LED;
+
 			MovPos[posicao_aux.linha][posicao_aux.coluna+i] = 1;
 			i = i+1;
 		}
@@ -536,142 +591,155 @@ void AtualizaLed(Peca* p){
 	case 'c':
 	case 'C':
 		if ( (TabAtual[posicao_aux.linha-2][posicao_aux.coluna+1]=='-' || islower(p->nome)!=islower(TabAtual[posicao_aux.linha-2][posicao_aux.coluna+1]) ) && posicao_aux.linha-2>-1 && posicao_aux.coluna+1<8){
-			Led[posicao_aux.linha-2][posicao_aux.coluna+1]=WHITE_LED;
-		    MovPos[posicao_aux.linha-2][posicao_aux.coluna+1] = 1;}
+
+		    MovPos[posicao_aux.linha-2][posicao_aux.coluna+1] = 1;
+		}
 		if ( (TabAtual[posicao_aux.linha-1][posicao_aux.coluna+2]=='-' || islower(p->nome)!=islower(TabAtual[posicao_aux.linha-1][posicao_aux.coluna+2]) ) && posicao_aux.linha-1>-1 && posicao_aux.coluna+2<8){
-		    Led[posicao_aux.linha-1][posicao_aux.coluna+2]=WHITE_LED;
-		    MovPos[posicao_aux.linha-1][posicao_aux.coluna+2] = 1;}
+
+		    MovPos[posicao_aux.linha-1][posicao_aux.coluna+2] = 1;
+		}
 		if ( (TabAtual[posicao_aux.linha+1][posicao_aux.coluna+2]=='-' || islower(p->nome)!=islower(TabAtual[posicao_aux.linha+1][posicao_aux.coluna+2]) ) && posicao_aux.linha+1<8 && posicao_aux.coluna+2<8){
-		    Led[posicao_aux.linha+1][posicao_aux.coluna+2]=WHITE_LED;
-		    MovPos[posicao_aux.linha+1][posicao_aux.coluna+2] = 1;}
+
+		    MovPos[posicao_aux.linha+1][posicao_aux.coluna+2] = 1;
+		}
 		if ( (TabAtual[posicao_aux.linha+2][posicao_aux.coluna+1]=='-' || islower(p->nome)!=islower(TabAtual[posicao_aux.linha+2][posicao_aux.coluna+1]) ) && posicao_aux.linha+2<8 && posicao_aux.coluna+1<8){
-		    Led[posicao_aux.linha+2][posicao_aux.coluna+1]=WHITE_LED;
-		    MovPos[posicao_aux.linha+2][posicao_aux.coluna+1] = 1;}
+
+		    MovPos[posicao_aux.linha+2][posicao_aux.coluna+1] = 1;
+		}
 		if ( (TabAtual[posicao_aux.linha+2][posicao_aux.coluna-1]=='-' || islower(p->nome)!=islower(TabAtual[posicao_aux.linha+2][posicao_aux.coluna-1]) ) && posicao_aux.linha+2<8 && posicao_aux.coluna-1>-1){
-		    Led[posicao_aux.linha+2][posicao_aux.coluna-1]=WHITE_LED;
-		    MovPos[posicao_aux.linha+2][posicao_aux.coluna-1] = 1;}
+
+		    MovPos[posicao_aux.linha+2][posicao_aux.coluna-1] = 1;
+		}
 		if ( (TabAtual[posicao_aux.linha+1][posicao_aux.coluna-2]=='-' || islower(p->nome)!=islower(TabAtual[posicao_aux.linha+1][posicao_aux.coluna-2]) ) && posicao_aux.linha+1<8 && posicao_aux.coluna-2>-1){
-		    Led[posicao_aux.linha+1][posicao_aux.coluna-2]=WHITE_LED;
-		    MovPos[posicao_aux.linha+1][posicao_aux.coluna-2] = 1;}
+
+		    MovPos[posicao_aux.linha+1][posicao_aux.coluna-2] = 1;
+		}
 		if ( (TabAtual[posicao_aux.linha-1][posicao_aux.coluna-2]=='-' || islower(p->nome)!=islower(TabAtual[posicao_aux.linha-1][posicao_aux.coluna-2]) ) && posicao_aux.linha-1>-1 && posicao_aux.coluna-2>-1){
-		    Led[posicao_aux.linha-1][posicao_aux.coluna-2]=WHITE_LED;
-		    MovPos[posicao_aux.linha-1][posicao_aux.coluna-2] = 1;}
+
+		    MovPos[posicao_aux.linha-1][posicao_aux.coluna-2] = 1;
+		}
 		if ( (TabAtual[posicao_aux.linha-2][posicao_aux.coluna-1]=='-' || islower(p->nome)!=islower(TabAtual[posicao_aux.linha-2][posicao_aux.coluna-1]) ) && posicao_aux.linha-2>-1 && posicao_aux.coluna-1>-1){
-		    Led[posicao_aux.linha-2][posicao_aux.coluna-1]=WHITE_LED;
-		    MovPos[posicao_aux.linha-2][posicao_aux.coluna-1] = 1;}
+
+		    MovPos[posicao_aux.linha-2][posicao_aux.coluna-1] = 1;
+		}
 		break;
 
 	case'b':
 	case'B':
 		while ( (TabAtual[posicao_aux.linha-i][posicao_aux.coluna+i]=='-' || islower(p->nome)!=islower(TabAtual[posicao_aux.linha-i][posicao_aux.coluna+i]) ) && posicao_aux.linha-i>-1 && posicao_aux.coluna+i<8){
-			Led[posicao_aux.linha-i][posicao_aux.coluna+i] = WHITE_LED;
+
 			MovPos[posicao_aux.linha-i][posicao_aux.coluna+i] = 1;
 			i = i+1;
-			}
-			i=0;
+		}
+		i=0;
 		while ( (TabAtual[posicao_aux.linha+i][posicao_aux.coluna+i]=='-' || islower(p->nome)!=islower(TabAtual[posicao_aux.linha+i][posicao_aux.coluna+i]) ) && posicao_aux.linha+i<8 && posicao_aux.coluna+i<8){
-			Led[posicao_aux.linha+i][posicao_aux.coluna+i] = WHITE_LED;
+
 			MovPos[posicao_aux.linha+i][posicao_aux.coluna+i] = 1;
 			i = i+1;
-			}
-			i=0;
+		}
+		i=0;
 		while ( (TabAtual[posicao_aux.linha+i][posicao_aux.coluna-i]=='-' || islower(p->nome)!=islower(TabAtual[posicao_aux.linha+i][posicao_aux.coluna-i]) ) && posicao_aux.linha+i<8 && posicao_aux.coluna-i>-1){
-			Led[posicao_aux.linha+i][posicao_aux.coluna-i] = WHITE_LED;
+
 			MovPos[posicao_aux.linha+i][posicao_aux.coluna-i] = 1;
 			i = i+1;
-			}
-			i=0;
+		}
+		i=0;
 		while ( (TabAtual[posicao_aux.linha-i][posicao_aux.coluna-i]=='-' || islower(p->nome)!=islower(TabAtual[posicao_aux.linha-i][posicao_aux.coluna-i]) ) && posicao_aux.linha-i>-1 && posicao_aux.coluna-i>-1){
-			Led[posicao_aux.linha-i][posicao_aux.coluna-i] = WHITE_LED;
+
 			MovPos[posicao_aux.linha-i][posicao_aux.coluna-i] = 1;
 			i = i+1;
-			}
-			i=0;
+		}
+		i=0;
 		break;
 	case 'q':
 	case 'Q':
 		while ( (TabAtual[posicao_aux.linha+i][posicao_aux.coluna]=='-' || islower(p->nome)!=islower(TabAtual[posicao_aux.linha+i][posicao_aux.coluna]) ) && posicao_aux.linha>-1){
-					Led[posicao_aux.linha+i][posicao_aux.coluna] = WHITE_LED;
-				    MovPos[posicao_aux.linha+i][posicao_aux.coluna] = 1;
-					i = i-1;
-				}
-				i=0;
+
+			MovPos[posicao_aux.linha+i][posicao_aux.coluna] = 1;
+			i = i-1;
+		}
+		i=0;
 		while ( (TabAtual[posicao_aux.linha+i][posicao_aux.coluna]=='-' || islower(p->nome)!=islower(TabAtual[posicao_aux.linha+i][posicao_aux.coluna]) ) && posicao_aux.linha<8){
-					Led[posicao_aux.linha+i][posicao_aux.coluna] = WHITE_LED;
-					MovPos[posicao_aux.linha+i][posicao_aux.coluna] = 1;
-					i = i+1;
-				}
-				i=0;
+
+			MovPos[posicao_aux.linha+i][posicao_aux.coluna] = 1;
+			i = i+1;
+		}
+		i=0;
 		while ( (TabAtual[posicao_aux.linha][posicao_aux.coluna+i]=='-' || islower(p->nome)!=islower(TabAtual[posicao_aux.linha][posicao_aux.coluna+i]) ) && posicao_aux.coluna>-1){
-					Led[posicao_aux.linha][posicao_aux.coluna+i]=WHITE_LED;
-					MovPos[posicao_aux.linha][posicao_aux.coluna+i] = 1;
-					i = i-1;
-				}
-				i=0;
+
+			MovPos[posicao_aux.linha][posicao_aux.coluna+i] = 1;
+			i = i-1;
+		}
+		i=0;
 		while ( (TabAtual[posicao_aux.linha][posicao_aux.coluna+i]=='-' || islower(p->nome)!=islower(TabAtual[posicao_aux.linha][posicao_aux.coluna+i]) ) && posicao_aux.linha<8){
-					Led[posicao_aux.linha][posicao_aux.coluna+i]=WHITE_LED;
-					MovPos[posicao_aux.linha][posicao_aux.coluna+i] = 1;
-					i = i+1;
-				}
+
+			MovPos[posicao_aux.linha][posicao_aux.coluna+i] = 1;
+			i = i+1;
+		}
 		while ( (TabAtual[posicao_aux.linha-i][posicao_aux.coluna+i]=='-' || islower(p->nome)!=islower(TabAtual[posicao_aux.linha-i][posicao_aux.coluna+i]) ) && posicao_aux.linha-i>-1 && posicao_aux.coluna+i<8){
-					Led[posicao_aux.linha-i][posicao_aux.coluna+i] = WHITE_LED;
-					MovPos[posicao_aux.linha-i][posicao_aux.coluna+i] = 1;
-					i = i+1;
-					}
-					i=0;
+
+			MovPos[posicao_aux.linha-i][posicao_aux.coluna+i] = 1;
+			i = i+1;
+		}
+		i=0;
 		while ( (TabAtual[posicao_aux.linha+i][posicao_aux.coluna+i]=='-' || islower(p->nome)!=islower(TabAtual[posicao_aux.linha+i][posicao_aux.coluna+i]) ) && posicao_aux.linha+i<8 && posicao_aux.coluna+i<8){
-					Led[posicao_aux.linha+i][posicao_aux.coluna+i] = WHITE_LED;
-					MovPos[posicao_aux.linha+i][posicao_aux.coluna+i] = 1;
-					i = i+1;
-					}
-					i=0;
+
+			MovPos[posicao_aux.linha+i][posicao_aux.coluna+i] = 1;
+			i = i+1;
+		}
+		i=0;
 		while ( (TabAtual[posicao_aux.linha+i][posicao_aux.coluna-i]=='-' || islower(p->nome)!=islower(TabAtual[posicao_aux.linha+i][posicao_aux.coluna-i]) ) && posicao_aux.linha+i<8 && posicao_aux.coluna-i>-1){
-					Led[posicao_aux.linha+i][posicao_aux.coluna-i] = WHITE_LED;
-					MovPos[posicao_aux.linha+i][posicao_aux.coluna-i] = 1;
-					i = i+1;
-					}
-					i=0;
+
+			MovPos[posicao_aux.linha+i][posicao_aux.coluna-i] = 1;
+			i = i+1;
+		}
+		i=0;
 		while ( (TabAtual[posicao_aux.linha-i][posicao_aux.coluna-i]=='-' || islower(p->nome)!=islower(TabAtual[posicao_aux.linha-i][posicao_aux.coluna-i]) ) && posicao_aux.linha-i>-1 && posicao_aux.coluna-i>-1){
-					Led[posicao_aux.linha-i][posicao_aux.coluna-i] = WHITE_LED;
-					MovPos[posicao_aux.linha-i][posicao_aux.coluna-i] = 1;
-					i = i+1;
-					}
-					i=0;
+
+			MovPos[posicao_aux.linha-i][posicao_aux.coluna-i] = 1;
+			i = i+1;
+			}
+		i=0;
 		break;
 	case'K':
 	case'k':
 		if ( (TabAtual[posicao_aux.linha-1][posicao_aux.coluna+1]=='-' || islower(p->nome)!=islower(TabAtual[posicao_aux.linha-1][posicao_aux.coluna+1]) ) && posicao_aux.linha-1>-1 && posicao_aux.coluna+1<8){
-			Led[posicao_aux.linha-1][posicao_aux.coluna+1]=WHITE_LED;
-			MovPos[posicao_aux.linha-1][posicao_aux.coluna+1] = 1;}
+
+			MovPos[posicao_aux.linha-1][posicao_aux.coluna+1] = 1;
+		}
 		if ( (TabAtual[posicao_aux.linha-1][posicao_aux.coluna-1]=='-' || islower(p->nome)!=islower(TabAtual[posicao_aux.linha-1][posicao_aux.coluna-1]) ) && posicao_aux.linha-1>-1 && posicao_aux.coluna-1>-1){
-			Led[posicao_aux.linha-1][posicao_aux.coluna-1]=WHITE_LED;
-			MovPos[posicao_aux.linha-1][posicao_aux.coluna-1] = 1;}
+
+			MovPos[posicao_aux.linha-1][posicao_aux.coluna-1] = 1;
+		}
 		if ( (TabAtual[posicao_aux.linha+1][posicao_aux.coluna+1]=='-' || islower(p->nome)!=islower(TabAtual[posicao_aux.linha+1][posicao_aux.coluna+1]) ) && posicao_aux.linha+1<8 && posicao_aux.coluna+1<8){
-			Led[posicao_aux.linha+1][posicao_aux.coluna+1]=WHITE_LED;
-			MovPos[posicao_aux.linha+1][posicao_aux.coluna+1] = 1;}
+
+			MovPos[posicao_aux.linha+1][posicao_aux.coluna+1] = 1;
+		}
 		if ( (TabAtual[posicao_aux.linha+1][posicao_aux.coluna-1]=='-' || islower(p->nome)!=islower(TabAtual[posicao_aux.linha+1][posicao_aux.coluna-1]) ) && posicao_aux.linha+1<8 && posicao_aux.coluna-1>-1){
-			Led[posicao_aux.linha+1][posicao_aux.coluna-1]=WHITE_LED;
-			MovPos[posicao_aux.linha+1][posicao_aux.coluna-1] = 1;}
+
+			MovPos[posicao_aux.linha+1][posicao_aux.coluna-1] = 1;
+		}
 		if ( (TabAtual[posicao_aux.linha-1][posicao_aux.coluna]=='-' || islower(p->nome)!=islower(TabAtual[posicao_aux.linha-1][posicao_aux.coluna]) ) && posicao_aux.linha-1>-1){
-			Led[posicao_aux.linha-1][posicao_aux.coluna]=WHITE_LED;
-			MovPos[posicao_aux.linha-1][posicao_aux.coluna] = 1;}
+
+			MovPos[posicao_aux.linha-1][posicao_aux.coluna] = 1;
+		}
 		if ( (TabAtual[posicao_aux.linha+1][posicao_aux.coluna]=='-' || islower(p->nome)!=islower(TabAtual[posicao_aux.linha+1][posicao_aux.coluna]) ) && posicao_aux.linha+1<8){
-			Led[posicao_aux.linha+1][posicao_aux.coluna]=WHITE_LED;
-			MovPos[posicao_aux.linha+1][posicao_aux.coluna] = 1;}
+
+			MovPos[posicao_aux.linha+1][posicao_aux.coluna] = 1;
+		}
 		if ( (TabAtual[posicao_aux.linha][posicao_aux.coluna+1]=='-' || islower(p->nome)!=islower(TabAtual[posicao_aux.linha][posicao_aux.coluna+1]) ) && posicao_aux.coluna+1<8){
-			Led[posicao_aux.linha][posicao_aux.coluna+1]=WHITE_LED;
-			MovPos[posicao_aux.linha][posicao_aux.coluna+1] = 1;}
+
+			MovPos[posicao_aux.linha][posicao_aux.coluna+1] = 1;
+		}
 		if ( (TabAtual[posicao_aux.linha][posicao_aux.coluna-1]=='-' || islower(p->nome)!=islower(TabAtual[posicao_aux.linha][posicao_aux.coluna-1]) ) && posicao_aux.coluna-1>-1){
-			Led[posicao_aux.linha][posicao_aux.coluna-1]=WHITE_LED;
-			MovPos[posicao_aux.linha][posicao_aux.coluna-1] = 1;}
+
+			MovPos[posicao_aux.linha][posicao_aux.coluna-1] = 1;
+		}
 
 	default:
 		break;
-
-
 	}
 }
-
 
 /* Acende os leds do tabuleiro */
 void LigaLed(){
@@ -720,6 +788,13 @@ Peca* VerifyMov(){
 	}
 	CounterOFF;
 	return NULL;
+}
+void Troca(Peca* p,Peca* p2){
+	Posicao aux = p->posicao;
+	p->posicao  = p2->posicao;
+	p2->posicao = aux;
+	Tabuleiro[p->posicao.linha][p->posicao.coluna] = *p;
+	Tabuleiro[p2->posicao.linha][p2->posicao.coluna] = *p2;
 }
 
 /* Altera a casa do tabuleiro apontada pelo contador */
@@ -783,8 +858,6 @@ void LCD_Write(char* str)
 }
 /* Função de interrupção para os leds e display */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
-
-	//LCD_Write(LCD_Texto);
 }
 
 /* USER CODE END 4 */
