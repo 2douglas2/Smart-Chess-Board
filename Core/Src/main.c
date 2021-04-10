@@ -242,7 +242,7 @@ Peca* VerifyTab();
 Peca* VerifyMov();
 void Troca(Peca* p,Peca* p2);
 void AtualizaLed(Peca* p);
-void MovPosiveis(Peca* p);
+void MovPossiveis(Peca* p);
 void LigaLed();
 void SetTable();
 void ClearLed();
@@ -289,7 +289,6 @@ int main(void)
   MX_GPIO_Init();
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
-  HAL_TIM_Base_Start_IT(&htim1);
   LCD_Init();
   /* USER CODE END 2 */
 
@@ -302,19 +301,21 @@ int main(void)
     /* USER CODE BEGIN 3 */
 
 	if(Turno==0){
-		LCD_Write(" Jogador da vez:\n     Brancas     ");
+		LCD_Write(" Jogador da vez:\n    Brancas     ");
 	}
 	else{
-		LCD_Write(" Jogador da vez:\n     Pretas     ");
+		LCD_Write(" Jogador da vez:\n    Pretas      ");
 	}
 	Peca* p;
 	p = VerifyTab() ;
 	if ( p != NULL ){
-		if((islower(p->nome)&&Turno==0)||(!islower(p->nome)&&Turno!=0)){
+		if((islower(p->nome)&&Turno!=0)||(!islower(p->nome)&&Turno==0)){
 			AtualizaLed(p);
+			LigaLed();
 			TabAtual[p->posicao.coluna][p->posicao.coluna ] = '-';
 			Peca* p2 = VerifyMov();
 			while(p2 == NULL){
+				LigaLed();
 				p2 = VerifyMov();
 			}
 			ClearLed();
@@ -323,7 +324,6 @@ int main(void)
 			}
 			else{
 				Led[p2->posicao.linha][p2->posicao.coluna] = WHITE_LED;
-				LigaLed();
 				TabAtual[p2->posicao.coluna][p2->posicao.coluna ] = '-';
 				p2->nome = '-';
 				for(int i=0;i<8;i++){
@@ -334,6 +334,7 @@ int main(void)
 				MovPos[p2->posicao.linha][p2->posicao.coluna]=1;
 				p2 = VerifyMov();
 				while(p2 == NULL){
+					LigaLed();
 					p2 = VerifyMov();
 				}
 
@@ -426,7 +427,7 @@ static void MX_TIM1_Init(void)
   {
     Error_Handler();
   }
-  sSlaveConfig.SlaveMode = TIM_SLAVEMODE_RESET;
+  sSlaveConfig.SlaveMode = TIM_SLAVEMODE_DISABLE;
   sSlaveConfig.InputTrigger = TIM_TS_ITR0;
   if (HAL_TIM_SlaveConfigSynchro(&htim1, &sSlaveConfig) != HAL_OK)
   {
@@ -507,6 +508,7 @@ void ClearLed() {
 
 /* Define a iluminação do tabuleiro */
 void AtualizaLed(Peca* p){
+	MovPossiveis(p);
 	for(int i=0;i<8;i++){
 		for(int j=0;j<8;j++){
 			if(MovPos[i][j]){
@@ -520,7 +522,7 @@ void AtualizaLed(Peca* p){
 
 	LigaLed();
 }
-void MovPosiveis(Peca* p){
+void MovPossiveis(Peca* p){
 	int i=0;
 	Posicao posicao_aux = p->posicao;
 	switch ( p->nome ){
@@ -748,7 +750,7 @@ void LigaLed(){
 	for(int i=0;i<8;i++){
 		for (int j=0;j<8;j++){
 			GPIOB->BSRR = Led[j][i];
-			HAL_Delay(1);
+			HAL_Delay(5);
 			GPIOB->BSRR = OFF_LED;
 			SetTable();
 		}
@@ -855,9 +857,6 @@ void LCD_Write(char* str)
 		LCD_Data(*str);
 		str++;
 	}
-}
-/* Função de interrupção para os leds e display */
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 }
 
 /* USER CODE END 4 */
